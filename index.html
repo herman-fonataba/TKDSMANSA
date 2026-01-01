@@ -3,229 +3,2680 @@
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rekap Absensi Siswa</title>
+  <title>Dashboard Sekolah</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
   <script src="/_sdk/element_sdk.js"></script>
   <style>
-        body {
-            box-sizing: border-box;
-        }
-        
-        .attendance-table {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .meeting-header {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        @media print {
-            body { print-color-adjust: exact; }
-            .no-print { display: none; }
-        }
-        
-        .summary-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            margin: 0 2px;
-        }
-        
-        .hadir { background-color: #dcfce7; color: #166534; }
-        .izin { background-color: #fef3c7; color: #92400e; }
-        .sakit { background-color: #dbeafe; color: #1e40af; }
-        .alpa { background-color: #fecaca; color: #dc2626; }
-    </style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .hover-lift {
+      transition: all 0.2s ease;
+    }
+    
+    .hover-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-overlay {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .icon-filter-white {
+      filter: brightness(0) invert(1);
+    }
+  </style>
   <style>@view-transition { navigation: auto; }</style>
-  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
  </head>
- <body class="h-full bg-gray-50 p-4"><!-- Login Form -->
-  <div id="login-container" class="min-h-full flex items-center justify-center">
-   <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-lg">
-    <div class="text-center">
-     <h2 class="text-3xl font-bold text-gray-900 mb-2">Login Sistem</h2>
-     <p class="text-gray-600">Masukkan username dan password untuk mengakses rekap absensi</p>
-    </div>
-    <form id="login-form" class="mt-8 space-y-6">
-     <div><label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label> <input id="username" name="username" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Masukkan username">
-     </div>
-     <div><label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label> <input id="password" name="password" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Masukkan password">
-     </div>
-     <div id="error-message" class="hidden text-red-600 text-sm text-center bg-red-50 p-3 rounded-md">
-      Username atau password salah!
-     </div><button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200"> Masuk </button>
-    </form>
-   </div>
-  </div><!-- Main Content (Hidden initially) -->
-  <div id="main-content" class="hidden max-w-full mx-auto bg-white rounded-lg shadow-lg overflow-hidden"><!-- Header -->
-   <div class="bg-blue-600 text-white p-6 text-center">
-    <h1 id="table-title" class="text-2xl font-bold mb-2">Rekap Absensi Siswa</h1>
-    <p id="school-info" class="text-blue-100">Tahun Ajaran Semester 1</p>
-   </div><!-- Table Container -->
-   <div class="overflow-x-auto">
-    <table class="attendance-table w-full border-collapse">
-     <thead>
-      <tr class="bg-gray-100">
-       <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-sm">No.</th>
-       <th class="border border-gray-300 px-4 py-2 text-left font-semibold text-sm min-w-48">Nama Siswa/i</th>
-       <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-sm">JK</th>
-       <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-sm">Kelas</th>
-       <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-sm bg-green-50">H</th>
-       <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-sm bg-yellow-50">I</th>
-       <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-sm bg-blue-50">S</th>
-       <th class="border border-gray-300 px-3 py-2 text-center font-semibold text-sm bg-red-50">A</th>
-      </tr>
-     </thead>
-     <tbody><!-- Student 1: MEI VARUSI MAKIN -->
-      <tr class="hover:bg-gray-50">
-       <td class="border border-gray-300 px-3 py-2 text-center">1</td>
-       <td class="border border-gray-300 px-4 py-2 font-medium">MEI VARUSI MAKIN</td>
-       <td class="border border-gray-300 px-3 py-2 text-center">P</td>
-       <td class="border border-gray-300 px-3 py-2 text-center font-semibold">X-D</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-green-50 font-semibold text-green-700">10</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-yellow-50 font-semibold text-yellow-700">1</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-blue-50 font-semibold text-blue-700">1</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-red-50 font-semibold text-red-700">13</td>
-      </tr><!-- Student 2: KHEIRIN CLAUDYA TANDI -->
-      <tr class="hover:bg-gray-50">
-       <td class="border border-gray-300 px-3 py-2 text-center">2</td>
-       <td class="border border-gray-300 px-4 py-2 font-medium">KHEIRIN CLAUDYA TANDI</td>
-       <td class="border border-gray-300 px-3 py-2 text-center">P</td>
-       <td class="border border-gray-300 px-3 py-2 text-center font-semibold">X-J</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-green-50 font-semibold text-green-700">13</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-yellow-50 font-semibold text-yellow-700">5</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-blue-50 font-semibold text-blue-700">0</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-red-50 font-semibold text-red-700">6</td>
-      </tr><!-- Student 3: ALEXANDRO RAFAEL ADITYA LUTURDAS -->
-      <tr class="hover:bg-gray-50">
-       <td class="border border-gray-300 px-3 py-2 text-center">3</td>
-       <td class="border border-gray-300 px-4 py-2 font-medium">ALEXANDRO RAFAEL ADITYA LUTURDAS</td>
-       <td class="border border-gray-300 px-3 py-2 text-center">L</td>
-       <td class="border border-gray-300 px-3 py-2 text-center font-semibold">XI-A1</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-green-50 font-semibold text-green-700">17</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-yellow-50 font-semibold text-yellow-700">8</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-blue-50 font-semibold text-blue-700">0</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-red-50 font-semibold text-red-700">0</td>
-      </tr><!-- Student 4: Valen Miracel Punuh -->
-      <tr class="hover:bg-gray-50">
-       <td class="border border-gray-300 px-3 py-2 text-center">4</td>
-       <td class="border border-gray-300 px-4 py-2 font-medium">Valen Miracel Punuh</td>
-       <td class="border border-gray-300 px-3 py-2 text-center">P</td>
-       <td class="border border-gray-300 px-3 py-2 text-center font-semibold">XII-A1</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-green-50 font-semibold text-green-700">10</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-yellow-50 font-semibold text-yellow-700">11</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-blue-50 font-semibold text-blue-700">0</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-red-50 font-semibold text-red-700">3</td>
-      </tr><!-- Student 5: Herman Gabriel Fonataba -->
-      <tr class="hover:bg-gray-50">
-       <td class="border border-gray-300 px-3 py-2 text-center">5</td>
-       <td class="border border-gray-300 px-4 py-2 font-medium">Herman Gabriel Fonataba</td>
-       <td class="border border-gray-300 px-3 py-2 text-center">L</td>
-       <td class="border border-gray-300 px-3 py-2 text-center font-semibold">XII-A2</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-green-50 font-semibold text-green-700">14</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-yellow-50 font-semibold text-yellow-700">8</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-blue-50 font-semibold text-blue-700">2</td>
-       <td class="border border-gray-300 px-3 py-2 text-center bg-red-50 font-semibold text-red-700">0</td>
-      </tr>
-     </tbody>
-    </table>
-   </div><!-- Legend -->
-   <div class="p-6 bg-gray-50 border-t">
-    <h3 class="text-lg font-semibold mb-3 text-gray-800">Keterangan:</h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-     <div class="flex items-center"><span class="summary-badge hadir mr-2">H</span> <span>Hadir</span>
-     </div>
-     <div class="flex items-center"><span class="summary-badge izin mr-2">I</span> <span>Izin</span>
-     </div>
-     <div class="flex items-center"><span class="summary-badge sakit mr-2">S</span> <span>Sakit</span>
-     </div>
-     <div class="flex items-center"><span class="summary-badge alpa mr-2">A</span> <span>Alpa</span>
-     </div>
-    </div>
-    <div class="mt-4 text-xs text-gray-600">
-     <p><strong>Simbol:</strong> ✓ = Hadir, I = Izin, S = Sakit, A = Alpa, - = Belum ada pertemuan</p>
-    </div>
-   </div>
-  </div>
+ <body class="h-full">
+  <div id="app" class="w-full h-full overflow-auto"></div>
   <script>
-        // Login functionality
-        const VALID_USERNAME = 'Smansa1';
-        const VALID_PASSWORD = 'TKD';
+    const defaultConfig = {
+      app_title: "Dashboard Sekolah",
+      school_name: "SMA NEGERI 1 KOTA SORONG",
+      primary_color: "#2563eb",
+      secondary_color: "#ffffff",
+      text_color: "#1f2937",
+      accent_color: "#10b981",
+      button_color: "#3b82f6"
+    };
 
-        function handleLogin(event) {
-            event.preventDefault();
-            
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
-            
-            if (username === VALID_USERNAME && password === VALID_PASSWORD) {
-                // Hide login form and show main content
-                document.getElementById('login-container').classList.add('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-                errorMessage.classList.add('hidden');
-            } else {
-                // Show error message
-                errorMessage.classList.remove('hidden');
-                document.getElementById('password').value = '';
-            }
-        }
+    const ICONS = {
+      menu: "https://herman-fonataba.github.io/TKDSMANSA/Menu.svg",
+      dashboard: "https://herman-fonataba.github.io/TKDSMANSA/Dashboard.svg",
+      dataSiswa: "https://herman-fonataba.github.io/TKDSMANSA/Data%20Siswa.svg",
+      absensi: "https://herman-fonataba.github.io/TKDSMANSA/Absensi.svg",
+      kontrol: "https://herman-fonataba.github.io/TKDSMANSA/Kontrol.svg",
+      settDas: "https://herman-fonataba.github.io/TKDSMANSA/SettDas.svg",
+      logout: "https://herman-fonataba.github.io/TKDSMANSA/Logout.svg",
+      settingan: "https://herman-fonataba.github.io/TKDSMANSA/Settingan.svg",
+      tampilkanPassword: "https://herman-fonataba.github.io/TKDSMANSA/Tampilkan%20Password.svg",
+      sembunyiPassword: "https://herman-fonataba.github.io/TKDSMANSA/Sembunyi%20Password.svg",
+      whatsapp: "https://herman-fonataba.github.io/TKDSMANSA/WhatsApp.svg",
+      edit: "https://herman-fonataba.github.io/TKDSMANSA/Kelola%20Data%20Siswa.svg",
+      hapus: "https://herman-fonataba.github.io/TKDSMANSA/Delete.svg",
+      boy: "https://herman-fonataba.github.io/TKDSMANSA/Boy.svg",
+      girl: "https://herman-fonataba.github.io/TKDSMANSA/girl.svg",
+      logo: "https://herman-fonataba.github.io/TKDSMANSA/SMANSA.svg"
+    };
 
-        // Add event listener for login form
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
+    let appState = {
+      allData: [],
+      currentUser: null,
+      currentPage: 'login',
+      loginMode: 'junior',
+      sidebarOpen: false,
+      editingStudent: null,
+      editingUser: null,
+      tempAttendance: {},
+      showPasswordLogin: false,
+      selectedEkstra: '',
+      showWhatsAppModal: null,
+      showDeleteConfirm: null,
+      adminPassword: 'admin123',
+      pieChart: null,
+      lineChart: null,
+      barChart: null,
+      doughnutChart: null,
+      attendanceView: 'table',
+      searchStudentName: '',
+      searchStudentClass: ''
+    };
+
+    async function initializeApp() {
+      try {
+        const dataResult = await window.dataSdk.init({
+          onDataChanged(data) {
+            appState.allData = data;
+            renderApp();
+          }
         });
 
-        const defaultConfig = {
-            table_title: "Rekap Absensi Siswa",
-            school_info: "Tahun Ajaran Semester 1"
+        if (!dataResult.isOk) {
+          console.error('Failed to initialize data SDK');
+          return;
+        }
+
+        await window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (config) => {
+            renderApp();
+          },
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.primary_color || defaultConfig.primary_color,
+                set: (value) => {
+                  config.primary_color = value;
+                  window.elementSdk.setConfig({ primary_color: value });
+                }
+              },
+              {
+                get: () => config.secondary_color || defaultConfig.secondary_color,
+                set: (value) => {
+                  config.secondary_color = value;
+                  window.elementSdk.setConfig({ secondary_color: value });
+                }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (value) => {
+                  config.text_color = value;
+                  window.elementSdk.setConfig({ text_color: value });
+                }
+              },
+              {
+                get: () => config.accent_color || defaultConfig.accent_color,
+                set: (value) => {
+                  config.accent_color = value;
+                  window.elementSdk.setConfig({ accent_color: value });
+                }
+              },
+              {
+                get: () => config.button_color || defaultConfig.button_color,
+                set: (value) => {
+                  config.button_color = value;
+                  window.elementSdk.setConfig({ button_color: value });
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ["app_title", config.app_title || defaultConfig.app_title],
+            ["school_name", config.school_name || defaultConfig.school_name]
+          ])
+        });
+
+        renderApp();
+      } catch (error) {
+        console.error('Initialization error:', error);
+      }
+    }
+
+    function getConfig() {
+      return window.elementSdk?.config || defaultConfig;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showNotification(message, type = 'info') {
+      const config = getConfig();
+      const colors = {
+        success: config.accent_color || defaultConfig.accent_color,
+        error: '#ef4444',
+        info: config.button_color || defaultConfig.button_color
+      };
+      
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-6 right-6 px-6 py-4 rounded-2xl text-white shadow-2xl z-50 font-bold fade-in';
+      toast.style.backgroundColor = colors[type];
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function renderApp() {
+      const app = document.getElementById('app');
+      const config = getConfig();
+
+      if (!appState.currentUser) {
+        app.innerHTML = renderLoginPage(config);
+      } else {
+        app.innerHTML = renderMainLayout(config);
+        
+        if (appState.currentPage === 'home') {
+          setTimeout(() => initCharts(config), 100);
+        }
+      }
+    }
+
+    function renderLoginPage(config) {
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const sc = config.secondary_color || defaultConfig.secondary_color;
+      const tc = config.text_color || defaultConfig.text_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      const isJunior = appState.loginMode === 'junior';
+
+      return `
+        <div class="min-h-full flex items-center justify-center p-4" 
+          style="background: linear-gradient(135deg, ${pc}15, ${bc}15);">
+          <div class="w-full max-w-md fade-in">
+            <div class="text-center mb-8">
+              <div class="w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center p-4"
+                style="background-color: ${sc}; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                <img src="${ICONS.logo}" alt="Logo" class="w-full h-full object-contain" 
+                  onerror="this.src=''; this.alt='Logo'; this.style.display='none';">
+              </div>
+              <h1 class="text-3xl font-bold mb-2" style="color: ${tc};">
+                ${escapeHtml(config.app_title || defaultConfig.app_title)}
+              </h1>
+              <p class="text-lg" style="color: ${tc}; opacity: 0.7;">
+                ${escapeHtml(config.school_name || defaultConfig.school_name)}
+              </p>
+            </div>
+
+            <div class="rounded-2xl shadow-2xl p-8" style="background-color: ${sc};">
+              <div class="flex gap-3 mb-6">
+                <button onclick="switchLoginMode('junior')" 
+                  class="flex-1 py-3 rounded-xl font-bold transition-all"
+                  style="background-color: ${isJunior ? pc : '#e5e7eb'}; color: ${isJunior ? '#ffffff' : tc};">
+                  Junior
+                </button>
+                <button onclick="switchLoginMode('senior')" 
+                  class="flex-1 py-3 rounded-xl font-bold transition-all"
+                  style="background-color: ${!isJunior ? pc : '#e5e7eb'}; color: ${!isJunior ? '#ffffff' : tc};">
+                  Senior
+                </button>
+              </div>
+
+              <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                  <label for="loginUsername" class="block font-semibold mb-2" style="color: ${tc};">Username</label>
+                  <input type="text" id="loginUsername" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};"
+                    placeholder="Masukkan username">
+                </div>
+
+                ${!isJunior ? `
+                <div>
+                  <label for="loginPassword" class="block font-semibold mb-2" style="color: ${tc};">Password</label>
+                  <div class="relative">
+                    <input type="${appState.showPasswordLogin ? 'text' : 'password'}" 
+                      id="loginPassword" required
+                      class="w-full px-4 py-3 pr-12 rounded-xl border-2 focus:outline-none"
+                      style="border-color: ${pc}30; color: ${tc};"
+                      placeholder="Masukkan password">
+                    <button type="button" onclick="togglePasswordVisibility()"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-gray-100 transition-all">
+                      <img src="${appState.showPasswordLogin ? ICONS.tampilkanPassword : ICONS.sembunyiPassword}" 
+                        alt="${appState.showPasswordLogin ? 'Sembunyikan' : 'Tampilkan'}" 
+                        class="w-6 h-6"
+                        onerror="this.src=''; this.alt='👁️'; this.style.display='none';">
+                    </button>
+                  </div>
+                </div>
+                ` : ''}
+
+                <button type="submit" 
+                  class="w-full py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                  style="background: linear-gradient(135deg, ${bc}, ${pc});">
+                  Masuk
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function switchLoginMode(mode) {
+      appState.loginMode = mode;
+      renderApp();
+    }
+
+    function togglePasswordVisibility() {
+      appState.showPasswordLogin = !appState.showPasswordLogin;
+      renderApp();
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      
+      const username = document.getElementById('loginUsername').value.trim();
+      const isJunior = appState.loginMode === 'junior';
+
+      if (isJunior) {
+        const student = appState.allData.find(d => d.type === 'student' && d.username === username);
+        if (student) {
+          appState.currentUser = { ...student, role: 'user' };
+          appState.currentPage = 'home';
+          renderApp();
+          showNotification('Login berhasil!', 'success');
+          return;
+        }
+        showNotification('Username tidak ditemukan', 'error');
+      } else {
+        const password = document.getElementById('loginPassword').value;
+        
+        if (username === 'admin' && password === appState.adminPassword) {
+          appState.currentUser = { username: 'admin', role: 'admin', fullName: 'Administrator' };
+          appState.currentPage = 'home';
+          renderApp();
+          showNotification('Selamat datang, Administrator!', 'success');
+          return;
+        }
+
+        const user = appState.allData.find(d => d.type === 'control' && d.username === username && d.password === password);
+        if (user) {
+          appState.currentUser = user;
+          appState.currentPage = 'home';
+          renderApp();
+          showNotification('Login berhasil!', 'success');
+          return;
+        }
+
+        showNotification('Username atau password salah', 'error');
+      }
+    }
+
+    function renderMainLayout(config) {
+      return `
+        <div class="h-full flex" style="background-color: #f3f4f6;">
+          ${appState.sidebarOpen ? `
+            <div class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" 
+              onclick="closeSidebar()"></div>
+          ` : ''}
+          
+          ${renderSidebar(config)}
+          
+          <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            ${renderMobileHeader(config)}
+            <main class="flex-1 overflow-auto p-6">
+              ${renderPageContent(config)}
+            </main>
+          </div>
+        </div>
+
+        ${appState.showWhatsAppModal ? renderWhatsAppModal(config) : ''}
+        ${appState.showDeleteConfirm ? renderDeleteConfirmModal(config) : ''}
+      `;
+    }
+
+    function renderSidebar(config) {
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const tc = config.text_color || defaultConfig.text_color;
+
+      return `
+        <aside class="w-72 ${appState.sidebarOpen ? '' : 'hidden lg:block'} fixed lg:relative h-full z-50"
+          style="background: linear-gradient(180deg, ${pc}, ${pc}ee);">
+          
+          <div class="p-6 border-b border-white border-opacity-20">
+            <div class="flex justify-between items-start mb-4">
+              <div class="flex items-center gap-3 flex-1">
+                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center p-2">
+                  <img src="${ICONS.logo}" alt="Logo" class="w-full h-full object-contain"
+                    onerror="this.src=''; this.alt='Logo'; this.style.display='none';">
+                </div>
+                <div class="flex-1">
+                  <h2 class="text-lg font-bold text-white">${escapeHtml(getConfig().app_title || defaultConfig.app_title)}</h2>
+                  <p class="text-xs text-white opacity-80">${getRoleLabel(appState.currentUser.role)}</p>
+                </div>
+              </div>
+              <button onclick="closeSidebar()" 
+                class="lg:hidden text-white p-2 rounded-lg hover:bg-white hover:bg-opacity-20 text-2xl">
+                ✕
+              </button>
+            </div>
+            
+            <div class="bg-white bg-opacity-20 rounded-xl p-3">
+              <p class="text-sm font-semibold text-white">${escapeHtml(appState.currentUser.fullName || appState.currentUser.username)}</p>
+              ${appState.currentUser.extracurricular ? `
+                <p class="text-xs text-white opacity-80 mt-1">📚 ${escapeHtml(appState.currentUser.extracurricular)}</p>
+              ` : ''}
+            </div>
+          </div>
+
+          <nav class="p-4 space-y-2 overflow-y-auto" style="max-height: calc(100% - 200px);">
+            ${getMenuItems().map(item => {
+              const isActive = appState.currentPage === item.id;
+              return `
+                <button onclick="navigateTo('${item.id}')"
+                  class="w-full text-left px-4 py-3 rounded-xl transition-all font-semibold flex items-center gap-3
+                  ${isActive ? 'bg-white shadow-lg' : 'text-white hover:bg-white hover:bg-opacity-20'}"
+                  style="${isActive ? `color: ${tc};` : ''}">
+                  <img src="${item.icon}" alt="${item.label}" 
+                    class="w-6 h-6 ${!isActive ? 'icon-filter-white' : ''}"
+                    onerror="this.src=''; this.alt='${item.label}'; this.style.display='none';">
+                  <span>${item.label}</span>
+                </button>
+              `;
+            }).join('')}
+          </nav>
+        </aside>
+      `;
+    }
+
+    function renderMobileHeader(config) {
+      const pc = config.primary_color || defaultConfig.primary_color;
+
+      return `
+        <header class="lg:hidden px-4 py-3 shadow-md flex items-center gap-3" 
+          style="background-color: ${pc};">
+          <button onclick="openSidebar()" 
+            class="p-2 rounded-lg hover:bg-white hover:bg-opacity-20">
+            <img src="${ICONS.menu}" alt="Menu" class="w-6 h-6 icon-filter-white"
+              onerror="this.src=''; this.alt='☰'; this.style.display='none';">
+          </button>
+          <div class="flex-1">
+            <h2 class="font-bold text-white">${escapeHtml(appState.currentUser.fullName || appState.currentUser.username)}</h2>
+            <p class="text-xs text-white opacity-80">${getRoleLabel(appState.currentUser.role)}</p>
+          </div>
+        </header>
+      `;
+    }
+
+    function getMenuItems() {
+      const role = appState.currentUser.role;
+      
+      if (role === 'admin') {
+        return [
+          { id: 'home', label: 'Dashboard', icon: ICONS.dashboard },
+          { id: 'students', label: 'Data Siswa/i', icon: ICONS.dataSiswa },
+          { id: 'attendance', label: 'Absensi', icon: ICONS.absensi },
+          { id: 'control', label: 'Kontrol', icon: ICONS.kontrol },
+          { id: 'dashboard-settings', label: 'Settingan Dashboard', icon: ICONS.settDas },
+          { id: 'settings', label: 'Settingan', icon: ICONS.settingan },
+          { id: 'logout', label: 'Logout', icon: ICONS.logout }
+        ];
+      } else if (role === 'monitor') {
+        return [
+          { id: 'home', label: 'Dashboard', icon: ICONS.dashboard },
+          { id: 'students', label: 'Data Siswa/i', icon: ICONS.dataSiswa },
+          { id: 'attendance', label: 'Absensi', icon: ICONS.absensi },
+          { id: 'control', label: 'Kontrol', icon: ICONS.kontrol },
+          { id: 'settings', label: 'Settingan', icon: ICONS.settingan },
+          { id: 'logout', label: 'Logout', icon: ICONS.logout }
+        ];
+      } else if (role === 'fasilitator') {
+        return [
+          { id: 'home', label: 'Dashboard', icon: ICONS.dashboard },
+          { id: 'students', label: 'Data Siswa/i', icon: ICONS.dataSiswa },
+          { id: 'attendance', label: 'Absensi', icon: ICONS.absensi },
+          { id: 'settings', label: 'Settingan', icon: ICONS.settingan },
+          { id: 'logout', label: 'Logout', icon: ICONS.logout }
+        ];
+      } else {
+        return [
+          { id: 'home', label: 'Dashboard', icon: ICONS.dashboard },
+          { id: 'history', label: 'Riwayat', icon: ICONS.absensi },
+          { id: 'recap', label: 'Rekapan', icon: ICONS.dashboard },
+          { id: 'settings', label: 'Settingan', icon: ICONS.settingan },
+          { id: 'logout', label: 'Logout', icon: ICONS.logout }
+        ];
+      }
+    }
+
+    function getRoleLabel(role) {
+      const labels = {
+        admin: 'Administrator',
+        monitor: 'Monitor',
+        fasilitator: 'Fasilitator',
+        user: 'Siswa/i'
+      };
+      return labels[role] || role;
+    }
+
+    function navigateTo(page) {
+      if (page === 'logout') {
+        appState.currentUser = null;
+        appState.currentPage = 'login';
+        appState.sidebarOpen = false;
+        showNotification('Berhasil logout', 'success');
+        renderApp();
+        return;
+      }
+      
+      appState.currentPage = page;
+      appState.sidebarOpen = false;
+      appState.editingStudent = null;
+      appState.editingUser = null;
+      renderApp();
+    }
+
+    function openSidebar() {
+      appState.sidebarOpen = true;
+      renderApp();
+    }
+
+    function closeSidebar() {
+      appState.sidebarOpen = false;
+      renderApp();
+    }
+
+    function renderPageContent(config) {
+      switch (appState.currentPage) {
+        case 'home': return renderHomePage(config);
+        case 'students': return appState.editingStudent !== null ? renderStudentForm(config) : renderStudentsPage(config);
+        case 'attendance': return renderAttendancePage(config);
+        case 'control': return appState.editingUser !== null ? renderUserForm(config) : renderControlPage(config);
+        case 'dashboard-settings': return renderDashboardSettings(config);
+        case 'settings': return renderSettingsPage(config);
+        case 'history': return renderHistoryPage(config);
+        case 'recap': return renderRecapPage(config);
+        default: return '<div class="text-center py-20">Halaman tidak ditemukan</div>';
+      }
+    }
+
+    function renderHomePage(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      
+      let students = appState.allData.filter(d => d.type === 'student');
+      const today = new Date().toISOString().split('T')[0];
+      let todayAttendance = appState.allData.filter(d => d.type === 'attendance' && d.date === today);
+      
+      if (appState.currentUser.role === 'monitor' || appState.currentUser.role === 'fasilitator') {
+        students = students.filter(s => s.extracurricular === appState.currentUser.extracurricular);
+        const studentIds = students.map(s => s.__backendId);
+        todayAttendance = todayAttendance.filter(a => studentIds.includes(a.studentId));
+      }
+      
+      if (appState.currentUser.role === 'user') {
+        const myAttendance = appState.allData.filter(d => d.type === 'attendance' && d.studentId === appState.currentUser.__backendId);
+        const totalHadir = myAttendance.filter(a => a.status === 'Hadir').length;
+        const totalIzin = myAttendance.filter(a => a.status === 'Izin').length;
+        const totalSakit = myAttendance.filter(a => a.status === 'Sakit').length;
+        const totalAlpa = myAttendance.filter(a => a.status === 'Alpa').length;
+        
+        return `
+          <div class="fade-in space-y-6">
+            <div class="flex items-center gap-3">
+              <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+                <img src="${ICONS.dashboard}" alt="Dashboard" class="w-full h-full object-contain"
+                  onerror="this.src=''; this.alt='����'; this.style.display='none';">
+              </div>
+              <div>
+                <h1 class="text-3xl font-bold" style="color: ${tc};">Selamat Datang</h1>
+                <p style="color: ${tc}; opacity: 0.7;">
+                  ${escapeHtml(appState.currentUser.fullName)}
+                </p>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              ${renderStatCard('Total Hadir', totalHadir, '#10b981', '✅')}
+              ${renderStatCard('Total Izin', totalIzin, '#f59e0b', '📝')}
+              ${renderStatCard('Total Sakit', totalSakit, '#f97316', '🤒')}
+              ${renderStatCard('Total Alpa', totalAlpa, '#ef4444', '❌')}
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
+              <div class="text-6xl mb-4">📚</div>
+              <h2 class="text-2xl font-bold mb-2" style="color: ${tc};">Statistik Kehadiran Anda</h2>
+              <p class="text-gray-500">Lihat riwayat dan rekapan kehadiran di menu samping</p>
+            </div>
+          </div>
+        `;
+      }
+      
+      const hadir = todayAttendance.filter(a => a.status === 'Hadir').length;
+      const izin = todayAttendance.filter(a => a.status === 'Izin').length;
+      const sakit = todayAttendance.filter(a => a.status === 'Sakit').length;
+      const alpa = todayAttendance.filter(a => a.status === 'Alpa').length;
+      
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex items-center gap-3">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+              <img src="${ICONS.dashboard}" alt="Dashboard" class="w-full h-full object-contain"
+                onerror="this.src=''; this.alt='📊'; this.style.display='none';">
+            </div>
+            <div>
+              <h1 class="text-3xl font-bold" style="color: ${tc};">Dashboard</h1>
+              <p style="color: ${tc}; opacity: 0.7;">
+                Selamat datang, ${escapeHtml(appState.currentUser.fullName || appState.currentUser.username)}!
+              </p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            ${renderStatCard('Total Siswa', students.length, pc, '���')}
+            ${renderStatCard('Hadir', hadir, '#10b981', '✅')}
+            ${renderStatCard('Izin & Sakit', izin + sakit, '#f59e0b', '���️')}
+            ${renderStatCard('Alpa', alpa, '#ef4444', '❌')}
+          </div>
+          
+          <div class="bg-white rounded-2xl shadow-xl p-6">
+            <h2 class="text-xl font-bold mb-4" style="color: ${tc};">
+              Statistik Kehadiran 3D
+            </h2>
+            <div class="flex justify-center">
+              <canvas id="doughnutChart" style="max-width: 350px; max-height: 350px;"></canvas>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+              <h2 class="text-xl font-bold mb-4" style="color: ${tc};">
+                Kehadiran Hari Ini
+              </h2>
+              <div class="flex justify-center">
+                <canvas id="pieChart" style="max-width: 300px; max-height: 300px;"></canvas>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+              <h2 class="text-xl font-bold mb-4" style="color: ${tc};">
+                Tren 7 Hari Terakhir
+              </h2>
+              <canvas id="lineChart" style="max-height: 300px;"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl p-6">
+            <h2 class="text-xl font-bold mb-4" style="color: ${tc};">
+              Kehadiran Per Ekstrakulikuler
+            </h2>
+            <canvas id="barChart" style="max-height: 400px;"></canvas>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStatCard(label, value, color, icon) {
+      return `
+        <div class="bg-white rounded-2xl shadow-lg p-6 hover-lift">
+          <div class="flex justify-between items-start mb-2">
+            <span class="text-sm font-semibold opacity-70">${label}</span>
+            <div class="text-3xl">${icon}</div>
+          </div>
+          <p class="text-4xl font-bold" style="color: ${color};">${value}</p>
+        </div>
+      `;
+    }
+
+    function initCharts(config) {
+      if (appState.pieChart) {
+        appState.pieChart.destroy();
+        appState.pieChart = null;
+      }
+      if (appState.lineChart) {
+        appState.lineChart.destroy();
+        appState.lineChart = null;
+      }
+      if (appState.barChart) {
+        appState.barChart.destroy();
+        appState.barChart = null;
+      }
+      if (appState.doughnutChart) {
+        appState.doughnutChart.destroy();
+        appState.doughnutChart = null;
+      }
+
+      if (appState.currentUser.role === 'user') return;
+
+      const today = new Date().toISOString().split('T')[0];
+      let students = appState.allData.filter(d => d.type === 'student');
+      let todayAttendance = appState.allData.filter(d => d.type === 'attendance' && d.date === today);
+      
+      if (appState.currentUser.role === 'monitor' || appState.currentUser.role === 'fasilitator') {
+        students = students.filter(s => s.extracurricular === appState.currentUser.extracurricular);
+        const studentIds = students.map(s => s.__backendId);
+        todayAttendance = todayAttendance.filter(a => studentIds.includes(a.studentId));
+      }
+      
+      const hadir = todayAttendance.filter(a => a.status === 'Hadir').length;
+      const izin = todayAttendance.filter(a => a.status === 'Izin').length;
+      const sakit = todayAttendance.filter(a => a.status === 'Sakit').length;
+      const alpa = todayAttendance.filter(a => a.status === 'Alpa').length;
+      
+      // Doughnut Chart 3D
+      const doughnutCtx = document.getElementById('doughnutChart');
+      if (doughnutCtx) {
+        appState.doughnutChart = new Chart(doughnutCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
+            datasets: [{
+              data: [hadir, izin, sakit, alpa],
+              backgroundColor: ['#10b981', '#f59e0b', '#f97316', '#ef4444'],
+              borderWidth: 6,
+              borderColor: '#ffffff',
+              hoverOffset: 20,
+              offset: 10
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '50%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { 
+                  padding: 20,
+                  font: { size: 14, weight: 'bold' },
+                  usePointStyle: true,
+                  pointStyle: 'circle'
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleFont: { size: 14, weight: 'bold' },
+                bodyFont: { size: 13 },
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    return ` ${label}: ${value} (${percentage}%)`;
+                  }
+                }
+              }
+            },
+            animation: {
+              animateRotate: true,
+              animateScale: true
+            }
+          }
+        });
+      }
+      
+      const pieCtx = document.getElementById('pieChart');
+      if (pieCtx) {
+        appState.pieChart = new Chart(pieCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Hadir', 'Izin', 'Sakit', 'Alpa'],
+            datasets: [{
+              data: [hadir, izin, sakit, alpa],
+              backgroundColor: ['#10b981', '#f59e0b', '#f97316', '#ef4444'],
+              borderWidth: 4,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { 
+                  padding: 15,
+                  font: { size: 12, weight: 'bold' }
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      const dates = [];
+      const hadirData = [];
+      const izinData = [];
+      const sakitData = [];
+      const alpaData = [];
+      
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        dates.push(date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }));
+        
+        let dayAttendance = appState.allData.filter(d => d.type === 'attendance' && d.date === dateStr);
+        
+        if (appState.currentUser.role === 'monitor' || appState.currentUser.role === 'fasilitator') {
+          const studentIds = students.map(s => s.__backendId);
+          dayAttendance = dayAttendance.filter(a => studentIds.includes(a.studentId));
+        }
+        
+        hadirData.push(dayAttendance.filter(a => a.status === 'Hadir').length);
+        izinData.push(dayAttendance.filter(a => a.status === 'Izin').length);
+        sakitData.push(dayAttendance.filter(a => a.status === 'Sakit').length);
+        alpaData.push(dayAttendance.filter(a => a.status === 'Alpa').length);
+      }
+      
+      const lineCtx = document.getElementById('lineChart');
+      if (lineCtx) {
+        appState.lineChart = new Chart(lineCtx, {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: [
+              {
+                label: 'Hadir',
+                data: hadirData,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+              },
+              {
+                label: 'Izin',
+                data: izinData,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+              },
+              {
+                label: 'Sakit',
+                data: sakitData,
+                borderColor: '#f97316',
+                backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+              },
+              {
+                label: 'Alpa',
+                data: alpaData,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { 
+                  padding: 10,
+                  font: { size: 11 }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+              }
+            }
+          }
+        });
+      }
+      
+      // Bar Chart - Kehadiran Per Ekstrakulikuler
+      const ekstras = appState.allData.filter(d => d.type === 'extracurricular').map(e => e.name);
+      const ekstraData = ekstras.map(ekstra => {
+        const ekstraStudents = students.filter(s => s.extracurricular === ekstra);
+        const ekstraStudentIds = ekstraStudents.map(s => s.__backendId);
+        const ekstraAttendance = todayAttendance.filter(a => ekstraStudentIds.includes(a.studentId));
+        
+        return {
+          name: ekstra,
+          hadir: ekstraAttendance.filter(a => a.status === 'Hadir').length,
+          izin: ekstraAttendance.filter(a => a.status === 'Izin').length,
+          sakit: ekstraAttendance.filter(a => a.status === 'Sakit').length,
+          alpa: ekstraAttendance.filter(a => a.status === 'Alpa').length
         };
+      });
 
-        async function onConfigChange(config) {
-            const titleElement = document.getElementById('table-title');
-            const schoolInfoElement = document.getElementById('school-info');
-            
-            if (titleElement) {
-                titleElement.textContent = config.table_title || defaultConfig.table_title;
+      const barCtx = document.getElementById('barChart');
+      if (barCtx) {
+        appState.barChart = new Chart(barCtx, {
+          type: 'bar',
+          data: {
+            labels: ekstraData.map(e => e.name),
+            datasets: [
+              {
+                label: 'Hadir',
+                data: ekstraData.map(e => e.hadir),
+                backgroundColor: '#10b981',
+                borderRadius: 8
+              },
+              {
+                label: 'Izin',
+                data: ekstraData.map(e => e.izin),
+                backgroundColor: '#f59e0b',
+                borderRadius: 8
+              },
+              {
+                label: 'Sakit',
+                data: ekstraData.map(e => e.sakit),
+                backgroundColor: '#f97316',
+                borderRadius: 8
+              },
+              {
+                label: 'Alpa',
+                data: ekstraData.map(e => e.alpa),
+                backgroundColor: '#ef4444',
+                borderRadius: 8
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { 
+                  padding: 15,
+                  font: { size: 12, weight: 'bold' }
+                }
+              }
+            },
+            scales: {
+              x: {
+                stacked: true,
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+              },
+              y: {
+                stacked: true
+              }
             }
-            
-            if (schoolInfoElement) {
-                schoolInfoElement.textContent = config.school_info || defaultConfig.school_info;
-            }
+          }
+        });
+      }
+    }
+
+    function renderStudentsPage(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      
+      let students = appState.allData.filter(d => d.type === 'student');
+      
+      if (appState.currentUser.role === 'monitor' || appState.currentUser.role === 'fasilitator') {
+        students = students.filter(s => s.extracurricular === appState.currentUser.extracurricular);
+      }
+
+      const searchName = appState.searchStudentName || '';
+      const searchClass = appState.searchStudentClass || '';
+
+      if (searchName) {
+        students = students.filter(s => 
+          s.fullName.toLowerCase().includes(searchName.toLowerCase()) ||
+          s.nickname.toLowerCase().includes(searchName.toLowerCase())
+        );
+      }
+
+      if (searchClass) {
+        students = students.filter(s => s.class === searchClass);
+      }
+
+      const allClasses = [...new Set(appState.allData
+        .filter(d => d.type === 'student')
+        .map(s => s.class)
+      )].sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+      
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+                <img src="${ICONS.dataSiswa}" alt="Data Siswa" class="w-full h-full object-contain"
+                  onerror="this.src=''; this.alt='👨������'; this.style.display='none';">
+              </div>
+              <h1 class="text-3xl font-bold" style="color: ${tc};">Data Siswa/i</h1>
+            </div>
+            <button onclick="openAddStudent()" 
+              class="px-6 py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+              style="background-color: ${bc};">
+              + Tambah Siswa
+            </button>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="md:col-span-2">
+                <label class="block font-semibold mb-2" style="color: ${tc};">🔍 Cari Nama Siswa</label>
+                <form onsubmit="executeSearchName(event)" class="flex gap-2">
+                  <input type="text" 
+                    id="searchNameInput"
+                    placeholder="Ketik nama lengkap atau panggilan..."
+                    value="${escapeHtml(searchName)}"
+                    class="flex-1 px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                  <button type="submit"
+                    class="px-6 py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                    style="background-color: ${bc};">
+                    <img src="https://herman-fonataba.github.io/TKDSMANSA/search%20orang.svg" 
+                      alt="Cari" class="w-6 h-6 icon-filter-white"
+                      onerror="this.src=''; this.alt='🔍'; this.style.display='none';">
+                  </button>
+                </form>
+              </div>
+              <div>
+                <label class="block font-semibold mb-2" style="color: ${tc};">🏫 Filter Kelas</label>
+                <select onchange="handleSearchClassChange(event)"
+                  class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                  style="border-color: ${pc}30; color: ${tc};">
+                  <option value="">Semua Kelas</option>
+                  ${allClasses.map(c => `
+                    <option value="${escapeHtml(c)}" ${searchClass === c ? 'selected' : ''}>
+                      ${escapeHtml(c)}
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+            ${searchName || searchClass ? `
+              <div class="mt-4 flex items-center justify-between">
+                <p class="text-sm" style="color: ${tc};">
+                  Ditemukan <span class="font-bold">${students.length}</span> siswa
+                </p>
+                <button onclick="clearStudentSearch()"
+                  class="px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-all"
+                  style="color: ${tc};">
+                  ✕ Hapus Filter
+                </button>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead style="background-color: ${pc};">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-white font-bold">No</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Nama Lengkap</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Panggilan</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Kelas</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Jenis Kelamin</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Agama</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">WhatsApp</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Ekstrakulikuler</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Username</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${students.length === 0 ? `
+                    <tr>
+                      <td colspan="10" class="px-4 py-16 text-center">
+                        <div class="text-6xl mb-4">📚</div>
+                        <p class="text-xl font-bold mb-2" style="color: ${tc};">Belum ada data siswa</p>
+                        <p class="text-gray-500">Klik "Tambah Siswa" untuk memulai</p>
+                      </td>
+                    </tr>
+                  ` : students.map((s, i) => `
+                    <tr class="border-b hover:bg-gray-50">
+                      <td class="px-4 py-3" style="color: ${tc};">${i + 1}</td>
+                      <td class="px-4 py-3 font-bold" style="color: ${tc};">${escapeHtml(s.fullName)}</td>
+                      <td class="px-4 py-3" style="color: ${tc};">${escapeHtml(s.nickname)}</td>
+                      <td class="px-4 py-3" style="color: ${tc};">${escapeHtml(s.class)}</td>
+                      <td class="px-4 py-3 text-center">
+                        <img src="${s.gender === 'Laki-laki' ? ICONS.boy : ICONS.girl}" 
+                          alt="${s.gender}" class="w-8 h-8 mx-auto"
+                          onerror="this.src=''; this.alt='${s.gender === 'Laki-laki' ? '👦' : '👧'}'; this.style.display='none';">
+                      </td>
+                      <td class="px-4 py-3" style="color: ${tc};">${escapeHtml(s.religion)}</td>
+                      <td class="px-4 py-3 text-center">
+                        <button onclick="showWhatsApp('${s.__backendId}')" 
+                          class="p-2 hover:bg-gray-100 rounded-lg transition-all">
+                          <img src="${ICONS.whatsapp}" alt="WhatsApp" class="w-6 h-6"
+                            onerror="this.src=''; this.alt='📱'; this.style.display='none';">
+                        </button>
+                      </td>
+                      <td class="px-4 py-3" style="color: ${tc};">${escapeHtml(s.extracurricular)}</td>
+                      <td class="px-4 py-3 font-mono" style="color: ${tc};">${escapeHtml(s.username)}</td>
+                      <td class="px-4 py-3">
+                        <div class="flex gap-2 justify-center items-center">
+                          <button onclick='openEditStudent(${JSON.stringify(s).replace(/'/g, "&#39;")})' 
+                            class="px-3 py-2 rounded-lg hover:bg-blue-100 transition-all" 
+                            style="background-color: ${bc}20;">
+                            <img src="${ICONS.edit}" alt="Edit" class="w-5 h-5"
+                              onerror="this.src=''; this.alt='✏️'; this.style.display='none';">
+                          </button>
+                          <button onclick='confirmDeleteStudent(${JSON.stringify(s).replace(/'/g, "&#39;")})' 
+                            class="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 transition-all">
+                            <img src="${ICONS.hapus}" alt="Hapus" class="w-5 h-5"
+                              onerror="this.src=''; this.alt='🗑️'; this.style.display='none';">
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStudentForm(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      
+      const isEdit = appState.editingStudent !== 'new';
+      const student = isEdit ? appState.editingStudent : {
+        fullName: '', nickname: '', class: '', gender: 'Laki-laki', 
+        religion: '', whatsapp: '', username: '', extracurricular: ''
+      };
+
+      const classes = appState.allData.filter(d => d.type === 'class').map(c => c.name);
+      const ekstras = appState.allData.filter(d => d.type === 'extracurricular').map(e => e.name);
+      
+      const showEkstraDropdown = appState.currentUser.role === 'admin';
+
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex items-center gap-3">
+            <button onclick="cancelEditStudent()" 
+              class="p-3 rounded-xl hover:bg-gray-200 transition-all text-2xl">
+              ←
+            </button>
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+              <img src="${ICONS.edit}" alt="Edit" class="w-full h-full object-contain"
+                onerror="this.src=''; this.alt='${isEdit ? '✏️' : '➕'}'; this.style.display='none';">
+            </div>
+            <h1 class="text-3xl font-bold" style="color: ${tc};">
+              ${isEdit ? 'Edit' : 'Tambah'} Siswa/i
+            </h1>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl p-8">
+            <form onsubmit="handleStudentSubmit(event)" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="fullName" class="block font-semibold mb-2" style="color: ${tc};">Nama Lengkap *</label>
+                  <input type="text" id="fullName" required value="${escapeHtml(student.fullName)}"
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <div>
+                  <label for="nickname" class="block font-semibold mb-2" style="color: ${tc};">Nama Panggilan *</label>
+                  <input type="text" id="nickname" required value="${escapeHtml(student.nickname)}"
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <div>
+                  <label for="class" class="block font-semibold mb-2" style="color: ${tc};">Kelas *</label>
+                  <select id="class" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                    <option value="">Pilih Kelas</option>
+                    ${classes.sort((a, b) => a.localeCompare(b, 'id', { numeric: true })).map(c => `
+                      <option value="${escapeHtml(c)}" ${student.class === c ? 'selected' : ''}>
+                        ${escapeHtml(c)}
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+
+                <div>
+                  <label for="gender" class="block font-semibold mb-2" style="color: ${tc};">Jenis Kelamin *</label>
+                  <select id="gender" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                    <option value="Laki-laki" ${student.gender === 'Laki-laki' ? 'selected' : ''}>Laki-laki</option>
+                    <option value="Perempuan" ${student.gender === 'Perempuan' ? 'selected' : ''}>Perempuan</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="religion" class="block font-semibold mb-2" style="color: ${tc};">Agama *</label>
+                  <select id="religion" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                    <option value="">Pilih Agama</option>
+                    ${['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'].map(r => `
+                      <option value="${r}" ${student.religion === r ? 'selected' : ''}>${r}</option>
+                    `).join('')}
+                  </select>
+                </div>
+
+                <div>
+                  <label for="whatsapp" class="block font-semibold mb-2" style="color: ${tc};">Nomor WhatsApp *</label>
+                  <input type="tel" id="whatsapp" required value="${escapeHtml(student.whatsapp)}"
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <div>
+                  <label for="username" class="block font-semibold mb-2" style="color: ${tc};">Username (Login) *</label>
+                  <input type="text" id="username" required value="${escapeHtml(student.username)}"
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                  <p class="text-xs text-gray-500 mt-1">Username harus unik dan tidak boleh sama</p>
+                </div>
+
+                ${showEkstraDropdown ? `
+                <div>
+                  <label for="extracurricular" class="block font-semibold mb-2" style="color: ${tc};">Ekstrakulikuler *</label>
+                  <select id="extracurricular" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                    <option value="">Pilih Ekstrakulikuler</option>
+                    ${ekstras.sort((a, b) => a.localeCompare(b, 'id')).map(e => `
+                      <option value="${escapeHtml(e)}" ${student.extracurricular === e ? 'selected' : ''}>
+                        ${escapeHtml(e)}
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+                ` : ''}
+              </div>
+
+              <input type="hidden" id="studentBackendId" value="${isEdit ? student.__backendId : ''}">
+
+              <div class="flex gap-4">
+                <button type="submit" 
+                  class="flex-1 py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                  style="background-color: ${bc};">
+                  💾 ${isEdit ? 'Update' : 'Simpan'}
+                </button>
+                <button type="button" onclick="cancelEditStudent()"
+                  class="flex-1 py-4 rounded-xl font-bold border-2 transition-all"
+                  style="border-color: ${tc}; color: ${tc};">
+                  Batal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    async function handleStudentSubmit(event) {
+      event.preventDefault();
+      
+      const fullName = document.getElementById('fullName').value.trim();
+      const nickname = document.getElementById('nickname').value.trim();
+      const classValue = document.getElementById('class').value;
+      const gender = document.getElementById('gender').value;
+      const religion = document.getElementById('religion').value;
+      const whatsapp = document.getElementById('whatsapp').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const backendId = document.getElementById('studentBackendId').value;
+      
+      let extracurricular = '';
+      if (appState.currentUser.role === 'admin') {
+        extracurricular = document.getElementById('extracurricular').value;
+      } else {
+        extracurricular = appState.currentUser.extracurricular;
+      }
+
+      const existingUser = appState.allData.find(d => 
+        d.type === 'student' && 
+        d.username === username && 
+        d.__backendId !== backendId
+      );
+      
+      if (existingUser) {
+        showNotification('Username sudah digunakan!', 'error');
+        return;
+      }
+
+      const studentData = {
+        type: 'student',
+        fullName,
+        nickname,
+        class: classValue,
+        gender,
+        religion,
+        whatsapp,
+        username,
+        extracurricular,
+        createdAt: new Date().toISOString()
+      };
+
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Menyimpan...';
+
+      if (backendId) {
+        const result = await window.dataSdk.update({ ...studentData, __backendId: backendId });
+        
+        if (result.isOk) {
+          showNotification('Data siswa berhasil diupdate!', 'success');
+          appState.editingStudent = null;
+        } else {
+          showNotification('Gagal mengupdate data siswa', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💾 Update';
+        }
+      } else {
+        if (appState.allData.filter(d => d.type === 'student').length >= 999) {
+          showNotification('Maksimal 999 siswa tercapai!', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💾 Simpan';
+          return;
         }
 
-        function mapToCapabilities(config) {
-            return {
-                recolorables: [],
-                borderables: [],
-                fontEditable: undefined,
-                fontSizeable: undefined
-            };
+        const result = await window.dataSdk.create(studentData);
+        
+        if (result.isOk) {
+          showNotification('Siswa berhasil ditambahkan!', 'success');
+          appState.editingStudent = null;
+        } else {
+          showNotification('Gagal menambahkan siswa', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💾 Simpan';
+        }
+      }
+    }
+
+    function openAddStudent() {
+      appState.editingStudent = 'new';
+      renderApp();
+    }
+
+    function openEditStudent(student) {
+      appState.editingStudent = student;
+      renderApp();
+    }
+
+    function cancelEditStudent() {
+      appState.editingStudent = null;
+      renderApp();
+    }
+
+    function executeSearchName(event) {
+      event.preventDefault();
+      const searchValue = document.getElementById('searchNameInput').value.trim();
+      appState.searchStudentName = searchValue;
+      renderApp();
+    }
+
+    function handleSearchClassChange(event) {
+      appState.searchStudentClass = event.target.value;
+      renderApp();
+    }
+
+    function clearStudentSearch() {
+      appState.searchStudentName = '';
+      appState.searchStudentClass = '';
+      renderApp();
+    }
+
+    function confirmDeleteStudent(student) {
+      appState.showDeleteConfirm = {
+        type: 'student',
+        data: student,
+        message: `Yakin ingin menghapus siswa ${student.fullName}?`
+      };
+      renderApp();
+    }
+
+    function showWhatsApp(studentId) {
+      appState.showWhatsAppModal = studentId;
+      renderApp();
+    }
+
+    function closeWhatsApp(event) {
+      if (event && event.target === event.currentTarget) {
+        appState.showWhatsAppModal = null;
+        renderApp();
+      } else if (!event) {
+        appState.showWhatsAppModal = null;
+        renderApp();
+      }
+    }
+
+    function copyWhatsApp(number) {
+      navigator.clipboard.writeText(number).then(() => {
+        showNotification('Nomor berhasil disalin!', 'success');
+      });
+    }
+
+    function openWhatsAppChat(number) {
+      window.open(`https://wa.me/${number}`, '_blank', 'noopener,noreferrer');
+    }
+
+    function renderWhatsAppModal(config) {
+      const student = appState.allData.find(d => d.__backendId === appState.showWhatsAppModal);
+      if (!student) return '';
+
+      const tc = config.text_color || defaultConfig.text_color;
+      const ac = config.accent_color || defaultConfig.accent_color;
+      const sc = config.secondary_color || defaultConfig.secondary_color;
+
+      return `
+        <div class="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4" 
+          onclick="closeWhatsApp(event)">
+          <div class="rounded-2xl p-8 max-w-md w-full shadow-2xl fade-in" 
+            style="background-color: ${sc};"
+            onclick="event.stopPropagation()">
+            <div class="text-center mb-6">
+              <div class="text-6xl mb-4">
+                <img src="${ICONS.whatsapp}" alt="WhatsApp" class="w-16 h-16 mx-auto"
+                  onerror="this.src=''; this.alt='📱'; this.style.display='none';">
+              </div>
+              <h2 class="text-2xl font-bold mb-2" style="color: ${tc};">
+                ${escapeHtml(student.fullName)}
+              </h2>
+              <p class="text-gray-500">Nomor WhatsApp</p>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-4 mb-6">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-lg font-mono font-bold flex-1" style="color: ${tc};">
+                  ${escapeHtml(student.whatsapp)}
+                </span>
+                <button onclick="copyWhatsApp('${escapeHtml(student.whatsapp)}')"
+                  class="px-4 py-2 rounded-lg font-bold text-white transition-all"
+                  style="background-color: ${ac};">
+                  📋 Salin
+                </button>
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button onclick="openWhatsAppChat('${student.whatsapp.replace(/\D/g, '')}')"
+                class="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-all bg-green-500 hover:bg-green-600">
+                💬 Hubungi
+              </button>
+              <button onclick="closeWhatsApp()"
+                class="flex-1 py-4 rounded-xl font-bold border-2 transition-all"
+                style="border-color: ${tc}; color: ${tc};">
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAttendancePage(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      const ac = config.accent_color || defaultConfig.accent_color;
+      
+      let students = appState.allData.filter(d => d.type === 'student');
+      
+      if (appState.currentUser.role === 'monitor' || appState.currentUser.role === 'fasilitator') {
+        students = students.filter(s => s.extracurricular === appState.currentUser.extracurricular);
+      } else if (appState.currentUser.role === 'admin' && appState.selectedEkstra) {
+        students = students.filter(s => s.extracurricular === appState.selectedEkstra);
+      }
+
+      const ekstras = appState.allData.filter(d => d.type === 'extracurricular').map(e => e.name);
+      const hasStudents = appState.allData.filter(d => d.type === 'student').length > 0;
+
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+                <img src="${ICONS.absensi}" alt="Absensi" class="w-full h-full object-contain"
+                  onerror="this.src=''; this.alt='✅'; this.style.display='none';">
+              </div>
+              <h1 class="text-3xl font-bold" style="color: ${tc};">Absensi</h1>
+            </div>
+
+            ${appState.currentUser.role === 'admin' && hasStudents ? `
+              <div class="flex flex-wrap gap-3">
+                <select onchange="changeEkstraFilter(event)" 
+                  class="px-6 py-3 rounded-xl font-bold border-2 focus:outline-none"
+                  style="border-color: ${pc}; color: ${tc};">
+                  ${ekstras.map(e => `
+                    <option value="${escapeHtml(e)}" ${appState.selectedEkstra === e ? 'selected' : ''}>
+                      ${escapeHtml(e)}
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+            ` : ''}
+          </div>
+
+          ${students.length === 0 ? `
+            <div class="bg-white rounded-2xl shadow-xl p-16 text-center">
+              <div class="text-6xl mb-4">📚</div>
+              <p class="text-xl font-bold mb-2" style="color: ${tc};">Belum ada siswa</p>
+              <p class="text-gray-500">Tambahkan siswa terlebih dahulu</p>
+            </div>
+          ` : `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              ${students.map(s => {
+                const att = appState.tempAttendance[s.__backendId] || '';
+                return `
+                  <div class="bg-white rounded-2xl shadow-lg p-6 hover-lift">
+                    <div class="flex items-center gap-3 mb-4">
+                      <img src="${s.gender === 'Laki-laki' ? ICONS.boy : ICONS.girl}" 
+                        alt="${s.gender}" class="w-12 h-12"
+                        onerror="this.src=''; this.alt='${s.gender === 'Laki-laki' ? '👦' : '👧'}'; this.style.display='none';">
+                      <div class="flex-1">
+                        <h3 class="font-bold text-lg" style="color: ${tc};">${escapeHtml(s.fullName)}</h3>
+                        <p class="text-sm text-gray-500">${escapeHtml(s.nickname)} • ${escapeHtml(s.class)}</p>
+                      </div>
+                      <img src="${s.gender === 'Laki-laki' ? ICONS.boy : ICONS.girl}" 
+                        alt="${s.gender}" class="w-8 h-8"
+                        onerror="this.src=''; this.alt=''; this.style.display='none';">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                      <button onclick="setAttendance('${s.__backendId}', 'Hadir')"
+                        class="py-3 rounded-xl font-bold text-white transition-all ${att === 'Hadir' ? 'shadow-lg' : 'opacity-50'}"
+                        style="background-color: #10b981;">
+                        ✅ Hadir
+                      </button>
+                      <button onclick="setAttendance('${s.__backendId}', 'Izin')"
+                        class="py-3 rounded-xl font-bold text-white transition-all ${att === 'Izin' ? 'shadow-lg' : 'opacity-50'}"
+                        style="background-color: #f59e0b;">
+                        📝 Izin
+                      </button>
+                      <button onclick="setAttendance('${s.__backendId}', 'Sakit')"
+                        class="py-3 rounded-xl font-bold text-white transition-all ${att === 'Sakit' ? 'shadow-lg' : 'opacity-50'}"
+                        style="background-color: #f97316;">
+                        🤒 Sakit
+                      </button>
+                      <button onclick="setAttendance('${s.__backendId}', 'Alpa')"
+                        class="py-3 rounded-xl font-bold text-white transition-all ${att === 'Alpa' ? 'shadow-lg' : 'opacity-50'}"
+                        style="background-color: #ef4444;">
+                        ❌ Alpa
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <div class="flex gap-4">
+              <button onclick="submitAttendance()" 
+                class="flex-1 py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                style="background-color: ${ac};">
+                📤 Kirim
+              </button>
+              <button onclick="navigateTo('recap')" 
+                class="flex-1 py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                style="background-color: ${bc};">
+                📊 Lihat Rekapan
+              </button>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function setAttendanceView(view) {
+      appState.attendanceView = view;
+      renderApp();
+    }
+
+    function changeEkstraFilter(event) {
+      appState.selectedEkstra = event.target.value;
+      renderApp();
+    }
+
+    function setAttendance(studentId, status) {
+      appState.tempAttendance[studentId] = status;
+      renderApp();
+    }
+
+    async function submitAttendance() {
+      const entries = Object.entries(appState.tempAttendance);
+      
+      if (entries.length === 0) {
+        showNotification('Belum ada absensi yang diisi', 'error');
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      let count = 0;
+
+      for (const [studentId, status] of entries) {
+        if (appState.allData.filter(d => d.type === 'attendance').length >= 999) {
+          showNotification('Maksimal 999 data absensi tercapai!', 'error');
+          break;
         }
 
-        function mapToEditPanelValues(config) {
-            return new Map([
-                ["table_title", config.table_title || defaultConfig.table_title],
-                ["school_info", config.school_info || defaultConfig.school_info]
-            ]);
+        const result = await window.dataSdk.create({
+          type: 'attendance',
+          studentId,
+          status,
+          date: today,
+          createdAt: new Date().toISOString()
+        });
+        
+        if (result.isOk) count++;
+      }
+
+      if (count > 0) {
+        appState.tempAttendance = {};
+        showNotification(`${count} absensi berhasil dikirim!`, 'success');
+        renderApp();
+      } else {
+        showNotification('Gagal mengirim absensi', 'error');
+      }
+    }
+
+    function renderControlPage(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      
+      let users = appState.allData.filter(d => d.type === 'control');
+      
+      if (appState.currentUser.role === 'monitor') {
+        users = users.filter(u => 
+          u.role === 'fasilitator' && 
+          u.extracurricular === appState.currentUser.extracurricular
+        );
+      }
+      
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+                <img src="${ICONS.kontrol}" alt="Kontrol" class="w-full h-full object-contain"
+                  onerror="this.src=''; this.alt='👥'; this.style.display='none';">
+              </div>
+              <h1 class="text-3xl font-bold" style="color: ${tc};">
+                Kontrol ${appState.currentUser.role === 'monitor' ? '(Fasilitator)' : ''}
+              </h1>
+            </div>
+            <button onclick="openAddUser()" 
+              class="px-6 py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+              style="background-color: ${bc};">
+              + Tambah ${appState.currentUser.role === 'monitor' ? 'Fasilitator' : 'Pengguna'}
+            </button>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead style="background-color: ${pc};">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-white font-bold">No</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Nama Lengkap</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Jenis Kelamin</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Role</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Username</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Password</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Ekstrakulikuler</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${users.length === 0 ? `
+                    <tr>
+                      <td colspan="8" class="px-4 py-16 text-center">
+                        <div class="text-6xl mb-4">👥</div>
+                        <p class="text-xl font-bold mb-2" style="color: ${tc};">Belum ada pengguna kontrol</p>
+                        <p class="text-gray-500">Klik "Tambah Pengguna" untuk memulai</p>
+                      </td>
+                    </tr>
+                  ` : users.map((u, i) => `
+                    <tr class="border-b hover:bg-gray-50">
+                      <td class="px-4 py-3" style="color: ${tc};">${i + 1}</td>
+                      <td class="px-4 py-3 font-bold" style="color: ${tc};">${escapeHtml(u.fullName)}</td>
+                      <td class="px-4 py-3 text-center">
+                        <img src="${u.gender === 'Laki-laki' ? ICONS.boy : ICONS.girl}" 
+                          alt="${u.gender}" class="w-8 h-8 mx-auto"
+                          onerror="this.src=''; this.alt='${u.gender === 'Laki-laki' ? '👦' : '👧'}'; this.style.display='none';">
+                      </td>
+                      <td class="px-4 py-3" style="color: ${tc};">
+                        <span class="px-3 py-1 rounded-full text-sm font-bold" 
+                          style="background-color: ${u.role === 'monitor' ? '#3b82f6' : '#8b5cf6'}20; color: ${u.role === 'monitor' ? '#3b82f6' : '#8b5cf6'};">
+                          ${u.role === 'monitor' ? '👀 Monitor' : '🎯 Fasilitator'}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 font-mono" style="color: ${tc};">${escapeHtml(u.username)}</td>
+                      <td class="px-4 py-3 font-mono text-gray-400">••••••</td>
+                      <td class="px-4 py-3" style="color: ${tc};">${escapeHtml(u.extracurricular)}</td>
+                      <td class="px-4 py-3">
+                        <div class="flex gap-2 justify-center items-center">
+                          <button onclick='openEditUser(${JSON.stringify(u).replace(/'/g, "&#39;")})' 
+                            class="px-3 py-2 rounded-lg hover:bg-blue-100 transition-all" 
+                            style="background-color: ${bc}20;">
+                            <img src="${ICONS.edit}" alt="Edit" class="w-5 h-5"
+                              onerror="this.src=''; this.alt='✏️'; this.style.display='none';">
+                          </button>
+                          <button onclick='confirmDeleteUser(${JSON.stringify(u).replace(/'/g, "&#39;")})' 
+                            class="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 transition-all">
+                            <img src="${ICONS.hapus}" alt="Hapus" class="w-5 h-5"
+                              onerror="this.src=''; this.alt='🗑️'; this.style.display='none';">
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderUserForm(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      
+      const isEdit = appState.editingUser !== 'new';
+      const user = isEdit ? appState.editingUser : {
+        fullName: '', gender: 'Laki-laki', role: 'monitor', 
+        username: '', password: '', extracurricular: ''
+      };
+
+      const ekstras = appState.allData.filter(d => d.type === 'extracurricular').map(e => e.name);
+      const fixedEkstra = appState.currentUser.extracurricular;
+      const isMonitor = appState.currentUser.role === 'monitor';
+
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex items-center gap-3">
+            <button onclick="cancelEditUser()" 
+              class="p-3 rounded-xl hover:bg-gray-200 transition-all text-2xl">
+              ←
+            </button>
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+              <img src="${ICONS.edit}" alt="Edit" class="w-full h-full object-contain"
+                onerror="this.src=''; this.alt='${isEdit ? '✏️' : '➕'}'; this.style.display='none';">
+            </div>
+            <h1 class="text-3xl font-bold" style="color: ${tc};">
+              ${isEdit ? 'Edit' : 'Tambah'} ${isMonitor ? 'Fasilitator' : 'Pengguna Kontrol'}
+            </h1>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl p-8">
+            <form onsubmit="handleUserSubmit(event)" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="userFullName" class="block font-semibold mb-2" style="color: ${tc};">Nama Lengkap *</label>
+                  <input type="text" id="userFullName" required value="${escapeHtml(user.fullName)}"
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <div>
+                  <label for="userGender" class="block font-semibold mb-2" style="color: ${tc};">Jenis Kelamin *</label>
+                  <select id="userGender" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                    <option value="Laki-laki" ${user.gender === 'Laki-laki' ? 'selected' : ''}>Laki-laki</option>
+                    <option value="Perempuan" ${user.gender === 'Perempuan' ? 'selected' : ''}>Perempuan</option>
+                  </select>
+                </div>
+
+                ${!isMonitor ? `
+                <div>
+                  <label for="userRole" class="block font-semibold mb-2" style="color: ${tc};">Role *</label>
+                  <select id="userRole" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                    <option value="monitor" ${user.role === 'monitor' ? 'selected' : ''}>Monitor</option>
+                    <option value="fasilitator" ${user.role === 'fasilitator' ? 'selected' : ''}>Fasilitator</option>
+                  </select>
+                </div>
+                ` : ''}
+
+                <div>
+                  <label for="userUsername" class="block font-semibold mb-2" style="color: ${tc};">Username *</label>
+                  <input type="text" id="userUsername" required value="${escapeHtml(user.username)}"
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                  <p class="text-xs text-gray-500 mt-1">Username harus unik</p>
+                </div>
+
+                <div>
+                  <label for="userPassword" class="block font-semibold mb-2" style="color: ${tc};">Password *</label>
+                  <input type="password" id="userPassword" ${!isEdit ? 'required' : ''} 
+                    value="${isEdit ? user.password : ''}"
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <div>
+                  <label for="userExtracurricular" class="block font-semibold mb-2" style="color: ${tc};">Ekstrakulikuler *</label>
+                  ${isMonitor ? `
+                    <input type="text" readonly value="${escapeHtml(fixedEkstra)}"
+                      class="w-full px-4 py-3 rounded-xl border-2 bg-gray-50"
+                      style="border-color: ${pc}30; color: ${tc};">
+                  ` : `
+                    <select id="userExtracurricular" required
+                      class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                      style="border-color: ${pc}30; color: ${tc};">
+                      <option value="">Pilih Ekstrakulikuler</option>
+                      ${ekstras.map(e => `
+                        <option value="${escapeHtml(e)}" ${user.extracurricular === e ? 'selected' : ''}>
+                          ${escapeHtml(e)}
+                        </option>
+                      `).join('')}
+                    </select>
+                  `}
+                </div>
+              </div>
+
+              <input type="hidden" id="userBackendId" value="${isEdit ? user.__backendId : ''}">
+
+              <div class="flex gap-4">
+                <button type="submit" 
+                  class="flex-1 py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                  style="background-color: ${bc};">
+                  💾 ${isEdit ? 'Update' : 'Simpan'}
+                </button>
+                <button type="button" onclick="cancelEditUser()"
+                  class="flex-1 py-4 rounded-xl font-bold border-2 transition-all"
+                  style="border-color: ${tc}; color: ${tc};">
+                  Batal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    async function handleUserSubmit(event) {
+      event.preventDefault();
+      
+      const fullName = document.getElementById('userFullName').value.trim();
+      const gender = document.getElementById('userGender').value;
+      const username = document.getElementById('userUsername').value.trim();
+      const password = document.getElementById('userPassword').value;
+      const backendId = document.getElementById('userBackendId').value;
+      
+      let role = 'fasilitator';
+      let extracurricular = '';
+      
+      if (appState.currentUser.role === 'monitor') {
+        role = 'fasilitator';
+        extracurricular = appState.currentUser.extracurricular;
+      } else {
+        role = document.getElementById('userRole').value;
+        extracurricular = document.getElementById('userExtracurricular').value;
+      }
+
+      const existingUser = appState.allData.find(d => 
+        d.type === 'control' && 
+        d.username === username && 
+        d.__backendId !== backendId
+      );
+      
+      if (existingUser) {
+        showNotification('Username sudah digunakan!', 'error');
+        return;
+      }
+
+      if (backendId) {
+        const existingPassword = appState.allData.find(d => 
+          d.type === 'control' && 
+          d.password === password && 
+          d.__backendId !== backendId
+        );
+        
+        if (password && existingPassword) {
+          showNotification('Password sudah digunakan!', 'error');
+          return;
+        }
+      } else {
+        const existingPassword = appState.allData.find(d => 
+          d.type === 'control' && 
+          d.password === password
+        );
+        
+        if (existingPassword) {
+          showNotification('Password sudah digunakan!', 'error');
+          return;
+        }
+      }
+
+      const userData = {
+        type: 'control',
+        fullName,
+        gender,
+        role,
+        username,
+        password: password || (backendId ? appState.editingUser.password : ''),
+        extracurricular,
+        createdAt: new Date().toISOString()
+      };
+
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Menyimpan...';
+
+      if (backendId) {
+        const result = await window.dataSdk.update({ ...userData, __backendId: backendId });
+        
+        if (result.isOk) {
+          showNotification('Data pengguna berhasil diupdate!', 'success');
+          appState.editingUser = null;
+        } else {
+          showNotification('Gagal mengupdate data pengguna', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💾 Update';
+        }
+      } else {
+        if (appState.allData.filter(d => d.type === 'control').length >= 999) {
+          showNotification('Maksimal 999 pengguna tercapai!', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💾 Simpan';
+          return;
         }
 
-        // Initialize Element SDK
-        if (window.elementSdk) {
-            window.elementSdk.init({
-                defaultConfig,
-                onConfigChange,
-                mapToCapabilities,
-                mapToEditPanelValues
-            });
+        const result = await window.dataSdk.create(userData);
+        
+        if (result.isOk) {
+          showNotification('Pengguna berhasil ditambahkan!', 'success');
+          appState.editingUser = null;
+        } else {
+          showNotification('Gagal menambahkan pengguna', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💾 Simpan';
         }
-    </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ac5182c4232f900',t:'MTc2NTQ1NzI4Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+      }
+    }
+
+    function openAddUser() {
+      appState.editingUser = 'new';
+      renderApp();
+    }
+
+    function openEditUser(user) {
+      appState.editingUser = user;
+      renderApp();
+    }
+
+    function cancelEditUser() {
+      appState.editingUser = null;
+      renderApp();
+    }
+
+    function confirmDeleteUser(user) {
+      appState.showDeleteConfirm = {
+        type: 'user',
+        data: user,
+        message: `Yakin ingin menghapus pengguna ${user.fullName}?`
+      };
+      renderApp();
+    }
+
+    function renderDashboardSettings(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      
+      const classes = appState.allData.filter(d => d.type === 'class');
+      const ekstras = appState.allData.filter(d => d.type === 'extracurricular');
+      
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex items-center gap-3">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+              <img src="${ICONS.settDas}" alt="Settingan Dashboard" class="w-full h-full object-contain"
+                onerror="this.src=''; this.alt='⚙️'; this.style.display='none';">
+            </div>
+            <h1 class="text-3xl font-bold" style="color: ${tc};">Settingan Dashboard</h1>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+              <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: ${tc};">
+                <img src="https://herman-fonataba.github.io/TKDSMANSA/Logo%20Kelas%20Smansa.svg" 
+                  alt="Kelas" class="w-8 h-8"
+                  onerror="this.src=''; this.alt='🏫'; this.style.display='none';">
+                <span>Kelas</span>
+              </h2>
+              
+              <form onsubmit="addClassItem(event)" class="mb-6">
+                <div class="flex gap-3">
+                  <input type="text" id="newClassName" required placeholder="Nama Kelas (cth: 10 IPA 1)"
+                    class="flex-1 px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                  <button type="submit" 
+                    class="px-6 py-3 rounded-xl font-bold text-white transition-all"
+                    style="background-color: ${bc};">
+                    + Tambah
+                  </button>
+                </div>
+              </form>
+
+              <div class="space-y-2">
+                ${classes.length === 0 ? `
+                  <p class="text-center text-gray-500 py-8">Belum ada kelas</p>
+                ` : classes.sort((a, b) => a.name.localeCompare(b.name, 'id', { numeric: true })).map(c => `
+                  <div class="flex items-center justify-between p-4 rounded-xl bg-gray-50">
+                    <span class="font-semibold" style="color: ${tc};">${escapeHtml(c.name)}</span>
+                    <button onclick='confirmDeleteClass(${JSON.stringify(c).replace(/'/g, "&#39;")})'
+                      class="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 transition-all">
+                      <img src="${ICONS.hapus}" alt="Hapus" class="w-5 h-5"
+                        onerror="this.src=''; this.alt='🗑️'; this.style.display='none';">
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+              <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: ${tc};">
+                <img src="https://herman-fonataba.github.io/TKDSMANSA/Logo%20Eksul%20Smansa.svg" 
+                  alt="Ekstrakulikuler" class="w-8 h-8"
+                  onerror="this.src=''; this.alt='����'; this.style.display='none';">
+                <span>Ekstrakulikuler</span>
+              </h2>
+              
+              <form onsubmit="addEkstraItem(event)" class="mb-6">
+                <div class="flex gap-3">
+                  <input type="text" id="newEkstraName" required placeholder="Nama Ekstrakulikuler (cth: Basket)"
+                    class="flex-1 px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                  <button type="submit" 
+                    class="px-6 py-3 rounded-xl font-bold text-white transition-all"
+                    style="background-color: ${bc};">
+                    + Tambah
+                  </button>
+                </div>
+              </form>
+
+              <div class="space-y-2">
+                ${ekstras.length === 0 ? `
+                  <p class="text-center text-gray-500 py-8">Belum ada ekstrakulikuler</p>
+                ` : ekstras.sort((a, b) => a.name.localeCompare(b.name, 'id')).map(e => `
+                  <div class="flex items-center justify-between p-4 rounded-xl bg-gray-50">
+                    <span class="font-semibold" style="color: ${tc};">${escapeHtml(e.name)}</span>
+                    <button onclick='confirmDeleteEkstra(${JSON.stringify(e).replace(/'/g, "&#39;")})'
+                      class="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 transition-all">
+                      <img src="${ICONS.hapus}" alt="Hapus" class="w-5 h-5"
+                        onerror="this.src=''; this.alt='🗑️'; this.style.display='none';">
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function addClassItem(event) {
+      event.preventDefault();
+      
+      const name = document.getElementById('newClassName').value.trim();
+      
+      const existing = appState.allData.find(d => d.type === 'class' && d.name === name);
+      if (existing) {
+        showNotification('Kelas sudah ada!', 'error');
+        return;
+      }
+
+      if (appState.allData.filter(d => d.type === 'class').length >= 999) {
+        showNotification('Maksimal 999 kelas tercapai!', 'error');
+        return;
+      }
+
+      const result = await window.dataSdk.create({
+        type: 'class',
+        name,
+        createdAt: new Date().toISOString()
+      });
+
+      if (result.isOk) {
+        showNotification('Kelas berhasil ditambahkan!', 'success');
+        document.getElementById('newClassName').value = '';
+      } else {
+        showNotification('Gagal menambahkan kelas', 'error');
+      }
+    }
+
+    async function addEkstraItem(event) {
+      event.preventDefault();
+      
+      const name = document.getElementById('newEkstraName').value.trim();
+      
+      const existing = appState.allData.find(d => d.type === 'extracurricular' && d.name === name);
+      if (existing) {
+        showNotification('Ekstrakulikuler sudah ada!', 'error');
+        return;
+      }
+
+      if (appState.allData.filter(d => d.type === 'extracurricular').length >= 999) {
+        showNotification('Maksimal 999 ekstrakulikuler tercapai!', 'error');
+        return;
+      }
+
+      const result = await window.dataSdk.create({
+        type: 'extracurricular',
+        name,
+        createdAt: new Date().toISOString()
+      });
+
+      if (result.isOk) {
+        showNotification('Ekstrakulikuler berhasil ditambahkan!', 'success');
+        document.getElementById('newEkstraName').value = '';
+      } else {
+        showNotification('Gagal menambahkan ekstrakulikuler', 'error');
+      }
+    }
+
+    function confirmDeleteClass(item) {
+      appState.showDeleteConfirm = {
+        type: 'class',
+        data: item,
+        message: `Yakin ingin menghapus kelas ${item.name}?`
+      };
+      renderApp();
+    }
+
+    function confirmDeleteEkstra(item) {
+      appState.showDeleteConfirm = {
+        type: 'extracurricular',
+        data: item,
+        message: `Yakin ingin menghapus ekstrakulikuler ${item.name}?`
+      };
+      renderApp();
+    }
+
+    function renderSettingsPage(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      
+      const isUser = appState.currentUser.role === 'user';
+      
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex items-center gap-3">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+              <img src="${ICONS.settingan}" alt="Settingan" class="w-full h-full object-contain"
+                onerror="this.src=''; this.alt='🔧'; this.style.display='none';">
+            </div>
+            <h1 class="text-3xl font-bold" style="color: ${tc};">Settingan</h1>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl p-8">
+            ${isUser ? `
+              <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: ${tc};">
+                👤 <span>Ubah Username</span>
+              </h2>
+              
+              <form onsubmit="handleChangeUsername(event)" class="space-y-4">
+                <div>
+                  <label for="newUsername" class="block font-semibold mb-2" style="color: ${tc};">Username Baru *</label>
+                  <input type="text" id="newUsername" required
+                    value="${escapeHtml(appState.currentUser.username)}"
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <button type="submit" 
+                  class="w-full py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                  style="background-color: ${bc};">
+                  💾 Simpan Username
+                </button>
+              </form>
+            ` : `
+              <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: ${tc};">
+                🔐 <span>Ubah Password Admin</span>
+              </h2>
+              
+              <form onsubmit="handleChangePassword(event)" class="space-y-4">
+                <div>
+                  <label for="oldPassword" class="block font-semibold mb-2" style="color: ${tc};">Password Lama *</label>
+                  <input type="password" id="oldPassword" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <div>
+                  <label for="newPassword" class="block font-semibold mb-2" style="color: ${tc};">Password Baru *</label>
+                  <input type="password" id="newPassword" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <div>
+                  <label for="confirmPassword" class="block font-semibold mb-2" style="color: ${tc};">Konfirmasi Password *</label>
+                  <input type="password" id="confirmPassword" required
+                    class="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style="border-color: ${pc}30; color: ${tc};">
+                </div>
+
+                <button type="submit" 
+                  class="w-full py-4 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                  style="background-color: ${bc};">
+                  🔒 Ubah Password
+                </button>
+              </form>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    async function handleChangeUsername(event) {
+      event.preventDefault();
+      
+      const newUsername = document.getElementById('newUsername').value.trim();
+      
+      const existingUser = appState.allData.find(d => 
+        d.type === 'student' && 
+        d.username === newUsername && 
+        d.__backendId !== appState.currentUser.__backendId
+      );
+      
+      if (existingUser) {
+        showNotification('Username sudah digunakan!', 'error');
+        return;
+      }
+
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Menyimpan...';
+
+      const updatedStudent = { ...appState.currentUser, username: newUsername };
+      const result = await window.dataSdk.update(updatedStudent);
+
+      if (result.isOk) {
+        appState.currentUser.username = newUsername;
+        showNotification('Username berhasil diubah!', 'success');
+      } else {
+        showNotification('Gagal mengubah username', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '💾 Simpan Username';
+      }
+    }
+
+    function handleChangePassword(event) {
+      event.preventDefault();
+      
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (oldPassword !== appState.adminPassword) {
+        showNotification('Password lama salah!', 'error');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showNotification('Konfirmasi password tidak cocok!', 'error');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        showNotification('Password minimal 6 karakter!', 'error');
+        return;
+      }
+
+      appState.adminPassword = newPassword;
+      showNotification('Password berhasil diubah!', 'success');
+      
+      event.target.reset();
+    }
+
+    function renderHistoryPage(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      
+      const myAttendance = appState.allData
+        .filter(d => d.type === 'attendance' && d.studentId === appState.currentUser.__backendId)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex items-center gap-3">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+              <img src="${ICONS.absensi}" alt="Riwayat" class="w-full h-full object-contain"
+                onerror="this.src=''; this.alt='������'; this.style.display='none';">
+            </div>
+            <h1 class="text-3xl font-bold" style="color: ${tc};">Riwayat Kehadiran</h1>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead style="background-color: ${pc};">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-white font-bold">No</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Tanggal</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${myAttendance.length === 0 ? `
+                    <tr>
+                      <td colspan="3" class="px-4 py-16 text-center">
+                        <div class="text-6xl mb-4">📅</div>
+                        <p class="text-xl font-bold mb-2" style="color: ${tc};">Belum ada riwayat kehadiran</p>
+                        <p class="text-gray-500">Data akan muncul setelah absensi dikirim</p>
+                      </td>
+                    </tr>
+                  ` : myAttendance.map((a, i) => {
+                    const statusColors = {
+                      'Hadir': '#10b981',
+                      'Izin': '#f59e0b',
+                      'Sakit': '#f97316',
+                      'Alpa': '#ef4444'
+                    };
+                    const statusIcons = {
+                      'Hadir': '✅',
+                      'Izin': '📝',
+                      'Sakit': '🤒',
+                      'Alpa': '❌'
+                    };
+                    return `
+                      <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3" style="color: ${tc};">${i + 1}</td>
+                        <td class="px-4 py-3 font-semibold" style="color: ${tc};">
+                          ${new Date(a.date).toLocaleDateString('id-ID', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                          <span class="px-4 py-2 rounded-full font-bold text-white" 
+                            style="background-color: ${statusColors[a.status]};">
+                            ${statusIcons[a.status]} ${a.status}
+                          </span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRecapPage(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const pc = config.primary_color || defaultConfig.primary_color;
+      const bc = config.button_color || defaultConfig.button_color;
+      
+      if (appState.currentUser.role === 'user') {
+        const myAttendance = appState.allData.filter(d => 
+          d.type === 'attendance' && 
+          d.studentId === appState.currentUser.__backendId
+        );
+        
+        const totalHadir = myAttendance.filter(a => a.status === 'Hadir').length;
+        const totalIzin = myAttendance.filter(a => a.status === 'Izin').length;
+        const totalSakit = myAttendance.filter(a => a.status === 'Sakit').length;
+        const totalAlpa = myAttendance.filter(a => a.status === 'Alpa').length;
+        const total = myAttendance.length;
+        
+        return `
+          <div class="fade-in space-y-6">
+            <div class="flex items-center gap-3">
+              <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+                <img src="${ICONS.dashboard}" alt="Rekapan" class="w-full h-full object-contain"
+                  onerror="this.src=''; this.alt='📈'; this.style.display='none';">
+              </div>
+              <h1 class="text-3xl font-bold" style="color: ${tc};">Rekapan Kehadiran</h1>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              ${renderStatCard('Total Hadir', totalHadir, '#10b981', '✅')}
+              ${renderStatCard('Total Izin', totalIzin, '#f59e0b', '📝')}
+              ${renderStatCard('Total Sakit', totalSakit, '#f97316', '🤒')}
+              ${renderStatCard('Total Alpa', totalAlpa, '#ef4444', '❌')}
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+              <h2 class="text-2xl font-bold mb-6" style="color: ${tc};">Statistik Kehadiran</h2>
+              
+              <div class="space-y-4">
+                ${total === 0 ? `
+                  <p class="text-center text-gray-500 py-8">Belum ada data kehadiran</p>
+                ` : `
+                  <div>
+                    <div class="flex justify-between mb-2">
+                      <span class="font-semibold" style="color: ${tc};">Hadir</span>
+                      <span class="font-bold" style="color: #10b981;">${totalHadir} / ${total} (${((totalHadir/total)*100).toFixed(1)}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                      <div class="h-4 rounded-full" style="width: ${(totalHadir/total)*100}%; background-color: #10b981;"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between mb-2">
+                      <span class="font-semibold" style="color: ${tc};">Izin</span>
+                      <span class="font-bold" style="color: #f59e0b;">${totalIzin} / ${total} (${((totalIzin/total)*100).toFixed(1)}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                      <div class="h-4 rounded-full" style="width: ${(totalIzin/total)*100}%; background-color: #f59e0b;"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between mb-2">
+                      <span class="font-semibold" style="color: ${tc};">Sakit</span>
+                      <span class="font-bold" style="color: #f97316;">${totalSakit} / ${total} (${((totalSakit/total)*100).toFixed(1)}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                      <div class="h-4 rounded-full" style="width: ${(totalSakit/total)*100}%; background-color: #f97316;"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between mb-2">
+                      <span class="font-semibold" style="color: ${tc};">Alpa</span>
+                      <span class="font-bold" style="color: #ef4444;">${totalAlpa} / ${total} (${((totalAlpa/total)*100).toFixed(1)}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                      <div class="h-4 rounded-full" style="width: ${(totalAlpa/total)*100}%; background-color: #ef4444;"></div>
+                    </div>
+                  </div>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      let students = appState.allData.filter(d => d.type === 'student');
+      let allAttendance = appState.allData.filter(d => d.type === 'attendance');
+      
+      if (appState.currentUser.role === 'monitor' || appState.currentUser.role === 'fasilitator') {
+        students = students.filter(s => s.extracurricular === appState.currentUser.extracurricular);
+        const studentIds = students.map(s => s.__backendId);
+        allAttendance = allAttendance.filter(a => studentIds.includes(a.studentId));
+      } else if (appState.currentUser.role === 'admin' && appState.selectedEkstra) {
+        students = students.filter(s => s.extracurricular === appState.selectedEkstra);
+        const studentIds = students.map(s => s.__backendId);
+        allAttendance = allAttendance.filter(a => studentIds.includes(a.studentId));
+      }
+
+      const ekstras = appState.allData.filter(d => d.type === 'extracurricular').map(e => e.name);
+      
+      const recapData = students.map(s => {
+        const attendances = allAttendance.filter(a => a.studentId === s.__backendId);
+        return {
+          student: s,
+          hadir: attendances.filter(a => a.status === 'Hadir').length,
+          izin: attendances.filter(a => a.status === 'Izin').length,
+          sakit: attendances.filter(a => a.status === 'Sakit').length,
+          alpa: attendances.filter(a => a.status === 'Alpa').length
+        };
+      });
+
+      return `
+        <div class="fade-in space-y-6">
+          <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-16 h-16 rounded-2xl flex items-center justify-center p-3" style="background-color: ${pc}20;">
+                <img src="${ICONS.dashboard}" alt="Rekapan" class="w-full h-full object-contain"
+                  onerror="this.src=''; this.alt='📊'; this.style.display='none';">
+              </div>
+              <h1 class="text-3xl font-bold" style="color: ${tc};">Rekapan Kehadiran</h1>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              ${appState.currentUser.role === 'admin' ? `
+                <select onchange="changeEkstraFilter(event)" 
+                  class="px-6 py-3 rounded-xl font-bold border-2 focus:outline-none"
+                  style="border-color: ${pc}; color: ${tc};">
+                  ${ekstras.map(e => `
+                    <option value="${escapeHtml(e)}" ${appState.selectedEkstra === e ? 'selected' : ''}>
+                      ${escapeHtml(e)}
+                    </option>
+                  `).join('')}
+                </select>
+              ` : ''}
+              ${recapData.length > 0 ? `
+                <button onclick="downloadRecapPDF()" 
+                  class="px-6 py-3 rounded-xl font-bold text-white shadow-lg hover:shadow-xl transition-all"
+                  style="background-color: ${bc};">
+                  📄 Ekspor ke PDF
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead style="background-color: ${pc};">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-white font-bold">No</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Nama Lengkap</th>
+                    <th class="px-4 py-3 text-left text-white font-bold">Kelas</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Hadir</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Izin</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Sakit</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Alpa</th>
+                    <th class="px-4 py-3 text-center text-white font-bold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${recapData.length === 0 ? `
+                    <tr>
+                      <td colspan="8" class="px-4 py-16 text-center">
+                        <div class="text-6xl mb-4">📊</div>
+                        <p class="text-xl font-bold mb-2" style="color: ${tc};">Belum ada data rekapan</p>
+                        <p class="text-gray-500">Data akan muncul setelah absensi dikirim</p>
+                      </td>
+                    </tr>
+                  ` : recapData.map((r, i) => {
+                    const total = r.hadir + r.izin + r.sakit + r.alpa;
+                    return `
+                      <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3" style="color: ${tc};">${i + 1}</td>
+                        <td class="px-4 py-3 font-bold" style="color: ${tc};">${escapeHtml(r.student.fullName)}</td>
+                        <td class="px-4 py-3" style="color: ${tc};">${escapeHtml(r.student.class)}</td>
+                        <td class="px-4 py-3 text-center font-bold" style="color: #10b981;">${r.hadir}</td>
+                        <td class="px-4 py-3 text-center font-bold" style="color: #f59e0b;">${r.izin}</td>
+                        <td class="px-4 py-3 text-center font-bold" style="color: #f97316;">${r.sakit}</td>
+                        <td class="px-4 py-3 text-center font-bold" style="color: #ef4444;">${r.alpa}</td>
+                        <td class="px-4 py-3 text-center font-bold" style="color: ${tc};">${total}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function downloadRecapPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      let students = appState.allData.filter(d => d.type === 'student');
+      let allAttendance = appState.allData.filter(d => d.type === 'attendance');
+      
+      if (appState.currentUser.role === 'monitor' || appState.currentUser.role === 'fasilitator') {
+        students = students.filter(s => s.extracurricular === appState.currentUser.extracurricular);
+        const studentIds = students.map(s => s.__backendId);
+        allAttendance = allAttendance.filter(a => studentIds.includes(a.studentId));
+      } else if (appState.currentUser.role === 'admin' && appState.selectedEkstra) {
+        students = students.filter(s => s.extracurricular === appState.selectedEkstra);
+        const studentIds = students.map(s => s.__backendId);
+        allAttendance = allAttendance.filter(a => studentIds.includes(a.studentId));
+      }
+
+      const recapData = students.map(s => {
+        const attendances = allAttendance.filter(a => a.studentId === s.__backendId);
+        return {
+          student: s,
+          hadir: attendances.filter(a => a.status === 'Hadir').length,
+          izin: attendances.filter(a => a.status === 'Izin').length,
+          sakit: attendances.filter(a => a.status === 'Sakit').length,
+          alpa: attendances.filter(a => a.status === 'Alpa').length
+        };
+      });
+
+      doc.setFontSize(18);
+      doc.text('Rekapan Kehadiran Siswa', 14, 20);
+      
+      doc.setFontSize(12);
+      doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID')}`, 14, 28);
+      
+      if (appState.selectedEkstra) {
+        doc.text(`Ekstrakulikuler: ${appState.selectedEkstra}`, 14, 35);
+      }
+
+      const tableData = recapData.map((r, i) => {
+        const total = r.hadir + r.izin + r.sakit + r.alpa;
+        return [
+          i + 1,
+          r.student.fullName,
+          r.student.class,
+          r.hadir,
+          r.izin,
+          r.sakit,
+          r.alpa,
+          total
+        ];
+      });
+
+      doc.autoTable({
+        startY: appState.selectedEkstra ? 40 : 35,
+        head: [['No', 'Nama Lengkap', 'Kelas', 'Hadir', 'Izin', 'Sakit', 'Alpa', 'Total']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 10, cellPadding: 3 }
+      });
+
+      doc.save(`Rekapan_Kehadiran_${new Date().toISOString().split('T')[0]}.pdf`);
+      showNotification('PDF berhasil diunduh!', 'success');
+    }
+
+    function renderDeleteConfirmModal(config) {
+      const tc = config.text_color || defaultConfig.text_color;
+      const sc = config.secondary_color || defaultConfig.secondary_color;
+
+      return `
+        <div class="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4" 
+          onclick="closeDeleteConfirm(event)">
+          <div class="rounded-2xl p-8 max-w-md w-full shadow-2xl fade-in" 
+            style="background-color: ${sc};"
+            onclick="event.stopPropagation()">
+            <div class="text-center mb-6">
+              <div class="text-6xl mb-4">⚠️</div>
+              <h2 class="text-2xl font-bold mb-2" style="color: ${tc};">Konfirmasi Hapus</h2>
+              <p class="text-gray-600">${appState.showDeleteConfirm.message}</p>
+            </div>
+
+            <div class="flex gap-3">
+              <button onclick="executeDelete()"
+                class="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-all bg-red-500 hover:bg-red-600">
+                🗑️ Hapus
+              </button>
+              <button onclick="closeDeleteConfirm()"
+                class="flex-1 py-4 rounded-xl font-bold border-2 transition-all"
+                style="border-color: ${tc}; color: ${tc};">
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function closeDeleteConfirm(event) {
+      if (event && event.target === event.currentTarget) {
+        appState.showDeleteConfirm = null;
+        renderApp();
+      } else if (!event) {
+        appState.showDeleteConfirm = null;
+        renderApp();
+      }
+    }
+
+    async function executeDelete() {
+      const { type, data } = appState.showDeleteConfirm;
+      
+      const result = await window.dataSdk.delete(data);
+      
+      if (result.isOk) {
+        showNotification('Data berhasil dihapus!', 'success');
+        appState.showDeleteConfirm = null;
+      } else {
+        showNotification('Gagal menghapus data', 'error');
+      }
+    }
+
+    initializeApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b75b9d3c5276040',t:'MTc2NzMwOTQwMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
